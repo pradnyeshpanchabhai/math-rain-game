@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rain Game</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2196f3">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(#6ec6ff,#e3f2fd);
+  text-align:center;
+  overflow:hidden;
+}
+
+#top{
+  padding:10px;
+  font-size:18px;
+  font-weight:bold;
+}
+
+#bar{
+  width:90%;
+  height:10px;
+  background:#ddd;
+  margin:auto;
+  border-radius:10px;
+}
+
+#time{
+  height:100%;
+  width:100%;
+  background:#4caf50;
+  border-radius:10px;
+}
+
+.drop{
+  position:absolute;
+  top:-60px;
+  width:160px;
+  height:60px;
+  background:rgba(33,150,243,.85);
+  color:#fff;
+  border-radius:0 0 50px 50px;
+  font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#options{
+  position:fixed;
+  bottom:15px;
+  width:100%;
+}
+
+.option{
+  font-size:22px;
+  padding:18px 28px;
+  margin:6px;
+  border:none;
+  border-radius:12px;
+  background:#222;
+  color:#fff;
+  width:40%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="top">
+Score: <span id="score">0</span> |
+❤️ <span id="life">3</span>
+</div>
+
+<div id="bar"><div id="time"></div></div>
+<div id="options"></div>
+
+<script>
+let score=0, life=3, ans=0, drop, fall;
+let speed=3, time=100;
+
+function question(){
+  let a=Math.floor(Math.random()*10)+1;
+  let b=Math.floor(Math.random()*10)+1;
+  ans=a+b;
+  return a + " + " + b;
+}
+
+function createOptions(){
+  let box=document.getElementById("options");
+  box.innerHTML="";
+  let set=new Set([ans]);
+  while(set.size<4){
+    set.add(Math.floor(Math.random()*20)+1);
+  }
+  [...set].sort(()=>Math.random()-0.5).forEach(v=>{
+    let btn=document.createElement("button");
+    btn.className="option";
+    btn.innerText=v;
+    btn.onclick=()=>check(v);
+    box.appendChild(btn);
+  });
+}
+
+function start(){
+  if(drop) drop.remove();
+
+  drop=document.createElement("div");
+  drop.className="drop";
+  drop.innerText=question();
+  drop.style.left=Math.random()*(window.innerWidth-160)+"px";
+  document.body.appendChild(drop);
+
+  let top=-60;
+  time=100;
+  updateTime();
+
+  fall=setInterval(()=>{
+    top+=speed;
+    drop.style.top=top+"px";
+    if(top>window.innerHeight-180){
+      clearInterval(fall);
+      life--;
+      update();
+      life<=0 ? gameOver() : start();
+    }
+  },20);
+
+  createOptions();
+}
+
+function updateTime(){
+  let bar=document.getElementById("time");
+  let t=setInterval(()=>{
+    time--;
+    bar.style.width=time+"%";
+    if(time<=0) clearInterval(t);
+  },50);
+}
+
+function check(v){
+  if(v===ans){
+    score+=10;
+    clearInterval(fall);
+    update();
+    start();
+  }else{
+    life--;
+    update();
+    if(life<=0) gameOver();
+  }
+}
+
+function update(){
+  document.getElementById("score").innerText=score;
+  document.getElementById("life").innerText=life;
+}
+
+function gameOver(){
+  alert("Game Over! Score: "+score);
+  location.reload();
+}
+
+start();
+</script>
+
+</body>
+</html>
