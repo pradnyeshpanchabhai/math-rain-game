@@ -6,13 +6,14 @@
 <title>Math Rain Game</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2196f3">
+<meta name="theme-color" content="#1e3c72">
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:linear-gradient(#6ec6ff,#e3f2fd);
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#1e3c72,#2a5298);
+  color:#fff;
   text-align:center;
   overflow:hidden;
 }
@@ -26,7 +27,7 @@ body{
 #bar{
   width:90%;
   height:10px;
-  background:#ddd;
+  background:#aaa;
   margin:auto;
   border-radius:10px;
 }
@@ -41,9 +42,10 @@ body{
 .drop{
   position:absolute;
   top:-60px;
-  width:160px;
+  width:180px;
   height:60px;
-  background:rgba(33,150,243,.85);
+  background:rgba(0,0,0,.4);
+  backdrop-filter: blur(6px);
   color:#fff;
   border-radius:0 0 50px 50px;
   font-size:22px;
@@ -54,7 +56,7 @@ body{
 
 #options{
   position:fixed;
-  bottom:15px;
+  bottom:70px;
   width:100%;
 }
 
@@ -63,15 +65,31 @@ body{
   padding:18px 28px;
   margin:6px;
   border:none;
-  border-radius:12px;
-  background:#222;
+  border-radius:14px;
+  background:linear-gradient(135deg,#ff9800,#ff5722);
   color:#fff;
   width:40%;
+  box-shadow:0 4px 8px rgba(0,0,0,.4);
+}
+
+#adBox{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#000;
+  color:#fff;
+  font-size:14px;
+  padding:8px;
 }
 </style>
 </head>
 
 <body>
+
+<!-- 🔊 SOUNDS -->
+<audio id="correctSound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
+<audio id="wrongSound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+<audio id="tapSound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3"></audio>
 
 <div id="top">
 Score: <span id="score">0</span> |
@@ -81,90 +99,120 @@ Score: <span id="score">0</span> |
 <div id="bar"><div id="time"></div></div>
 <div id="options"></div>
 
+<!-- 💰 FUTURE ADS -->
+<div id="adBox">Ad will appear here</div>
+
 <script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+
 let score=0, life=3, ans=0, drop, fall;
 let speed=3, time=100;
 
+// 🧠 QUESTION LOGIC (ADD / MULTIPLY / DIVIDE)
 function question(){
-  let a=Math.floor(Math.random()*10)+1;
-  let b=Math.floor(Math.random()*10)+1;
-  ans=a+b;
-  return a + " + " + b;
+ let a=Math.floor(Math.random()*10)+1;
+ let b=Math.floor(Math.random()*10)+1;
+ let type=Math.floor(Math.random()*3); // 0 + , 1 × , 2 ÷
+
+ if(type===0){
+   ans=a+b;
+   return a+" + "+b;
+ }
+ if(type===1){
+   ans=a*b;
+   return a+" × "+b;
+ }
+ if(type===2){
+   ans=a;
+   return (a*b)+" ÷ "+b;
+ }
 }
 
+// 🎯 OPTIONS
 function createOptions(){
-  let box=document.getElementById("options");
-  box.innerHTML="";
-  let set=new Set([ans]);
-  while(set.size<4){
-    set.add(Math.floor(Math.random()*20)+1);
-  }
-  [...set].sort(()=>Math.random()-0.5).forEach(v=>{
-    let btn=document.createElement("button");
-    btn.className="option";
-    btn.innerText=v;
-    btn.onclick=()=>check(v);
-    box.appendChild(btn);
-  });
+ let box=document.getElementById("options");
+ box.innerHTML="";
+ let set=new Set([ans]);
+ while(set.size<4) set.add(Math.floor(Math.random()*50)+1);
+
+ [...set].sort(()=>Math.random()-0.5).forEach(v=>{
+   let btn=document.createElement("button");
+   btn.className="option";
+   btn.innerText=v;
+   btn.onclick=()=>check(v);
+   box.appendChild(btn);
+ });
 }
 
+// ▶️ START ROUND
 function start(){
-  if(drop) drop.remove();
+ if(drop) drop.remove();
 
-  drop=document.createElement("div");
-  drop.className="drop";
-  drop.innerText=question();
-  drop.style.left=Math.random()*(window.innerWidth-160)+"px";
-  document.body.appendChild(drop);
+ drop=document.createElement("div");
+ drop.className="drop";
+ drop.innerText=question();
+ drop.style.left=Math.random()*(window.innerWidth-180)+"px";
+ document.body.appendChild(drop);
 
-  let top=-60;
-  time=100;
-  updateTime();
+ let top=-60;
+ time=100;
+ updateTime();
 
-  fall=setInterval(()=>{
-    top+=speed;
-    drop.style.top=top+"px";
-    if(top>window.innerHeight-180){
-      clearInterval(fall);
-      life--;
-      update();
-      life<=0 ? gameOver() : start();
-    }
-  },20);
+ fall=setInterval(()=>{
+   top+=speed;
+   drop.style.top=top+"px";
+   if(top>window.innerHeight-200){
+     clearInterval(fall);
+     life--;
+     update();
+     life<=0 ? gameOver() : start();
+   }
+ },20);
 
-  createOptions();
+ createOptions();
 }
 
+// ⏱️ TIMER BAR
 function updateTime(){
-  let bar=document.getElementById("time");
-  let t=setInterval(()=>{
-    time--;
-    bar.style.width=time+"%";
-    if(time<=0) clearInterval(t);
-  },50);
+ let bar=document.getElementById("time");
+ let t=setInterval(()=>{
+   time--;
+   bar.style.width=time+"%";
+   if(time<=0) clearInterval(t);
+ },50);
 }
 
+// ✅ CHECK ANSWER + 🔊 SOUND
 function check(v){
-  if(v===ans){
-    score+=10;
-    clearInterval(fall);
-    update();
-    start();
-  }else{
-    life--;
-    update();
-    if(life<=0) gameOver();
-  }
+ document.getElementById("tapSound").play();
+
+ if(v===ans){
+   document.getElementById("correctSound").play();
+   score+=10;
+   if(score%50===0) speed+=1;
+   clearInterval(fall);
+   update();
+   start();
+ }else{
+   document.getElementById("wrongSound").play();
+   life--;
+   update();
+   if(life<=0) gameOver();
+ }
 }
 
+// 🔄 UPDATE UI
 function update(){
-  document.getElementById("score").innerText=score;
-  document.getElementById("life").innerText=life;
+ document.getElementById("score").innerText=score;
+ document.getElementById("life").innerText=life;
 }
 
+// ❌ GAME OVER
 function gameOver(){
-  alert("Game Over! Score: "+score);
-  location.reload();
+ alert("Game Over!\nScore: "+score);
+ location.reload();
 }
 
 start();
